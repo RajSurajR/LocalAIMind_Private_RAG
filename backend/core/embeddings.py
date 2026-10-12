@@ -23,21 +23,21 @@ class VectorStore:
         self.vector_db = None
         Path(persist_directory).mkdir(parents=True, exist_ok=True)
 
-    def create_vector_db(self, documents: List, collection_name: str = "local-rag") -> Chroma:
+    def create_vector_db(self, documents_chunks: List, collection_name: str = "local-rag") -> Chroma:
         """Create a persistent vector database from a list of document chunks."""
         try:
             logger.info("Creating vector database for collection=%s", collection_name)
             logger.info("Persist directory: %s", self.persist_directory)
-            logger.info("Number of chunks: %s", len(documents))
+            logger.info("Number of chunks: %s", len(documents_chunks))
 
             self.vector_db = Chroma.from_documents(
-                documents=documents,
+                documents=documents_chunks,
                 embedding=self.embeddings,
                 collection_name=collection_name,
                 persist_directory=self.persist_directory,
             )
 
-            logger.info("Vector database created successfully with %s documents", len(documents))
+            logger.info("Vector database created successfully with %s documents", len(documents_chunks))
             return self.vector_db
         except Exception as exc:
             logger.error("Error creating vector database: %s", exc)

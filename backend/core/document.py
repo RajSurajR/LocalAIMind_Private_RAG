@@ -10,7 +10,7 @@ import logging
 from pathlib import Path
 from typing import List
 
-from langchain_community.document_loaders import UnstructuredPDFLoader
+from langchain_community.document_loaders import UnstructuredPDFLoader, PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 logger = logging.getLogger(__name__)
@@ -22,7 +22,7 @@ class DocumentProcessor:
     def __init__(self, chunk_size: int = 7500, chunk_overlap: int = 100):
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
-        self.splitter = RecursiveCharacterTextSplitter(
+        self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
         )
@@ -31,7 +31,7 @@ class DocumentProcessor:
         """Load a PDF file and return raw LangChain documents."""
         try:
             logger.info("Loading PDF from %s", file_path)
-            loader = UnstructuredPDFLoader(str(file_path))
+            loader = PyPDFLoader(str(file_path))
             return loader.load()
         except Exception as exc:
             logger.error("Error loading PDF: %s", exc)
@@ -41,7 +41,7 @@ class DocumentProcessor:
         """Split large PDF text into smaller chunks for retrieval."""
         try:
             logger.info("Splitting documents into chunks")
-            return self.splitter.split_documents(documents)
+            return self.text_splitter.split_documents(documents)
         except Exception as exc:
             logger.error("Error splitting documents: %s", exc)
             raise
