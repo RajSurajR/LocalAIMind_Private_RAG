@@ -23,7 +23,6 @@ class LLMManager:
             template="""You are an AI language model assistant. Generate 2 different versions
             of the user question to improve retrieval from a vector database.
             Return each alternative question on a separate line.
-
             Original question: {question}""",
         )
 

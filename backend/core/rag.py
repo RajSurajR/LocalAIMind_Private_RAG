@@ -37,13 +37,10 @@ class RAGPipeline:
     def get_thinking_response(self, question: str, formatted_context: str):
         """Use Ollama thinking mode when the selected model supports it."""
         system_message = f"""You are an expert AI assistant.
-
-Answer the question using only the PDF context below.
-
-Context:
-{formatted_context}
-
-Think through the problem step-by-step and cite the source document for each claim."""
+        Answer the question using only the PDF context below.
+        Context:
+        {formatted_context}
+        Think through the problem step-by-step and cite the source document for each claim."""
 
         response = ollama.chat(
             model=self.llm_manager.model_name,
