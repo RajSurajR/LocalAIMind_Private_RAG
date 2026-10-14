@@ -6,7 +6,7 @@ validate input and make the output predictable for frontend clients.
 
 from datetime import datetime
 from typing import Any, Dict, List, Optional
-
+from backend.config import settings
 from pydantic import BaseModel
 
 
@@ -31,7 +31,7 @@ class PDFListItem(BaseModel):
 
 class QueryRequest(BaseModel):
     question: str
-    model: str = "llama3.2"
+    model: str = settings.DEFAULT_CHAT_MODEL
     pdf_ids: Optional[List[str]] = None
     session_id: Optional[str] = None
 

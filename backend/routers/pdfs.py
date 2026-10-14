@@ -43,7 +43,7 @@ def list_pdfs(
     pdf_service: PDFService = Depends(get_pdf_service),
 ):
     """List uploaded PDFs and metadata from SQLite."""
-    pdfs = pdf_service.list_pdfs(db)
+    pdfs = pdf_service.list_all_pdfs(db)
     return [
         PDFListItem(
             pdf_id=pdf.pdf_id,

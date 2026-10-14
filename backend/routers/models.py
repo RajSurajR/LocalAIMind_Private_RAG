@@ -69,7 +69,7 @@ def list_models():
         if not chat_models:
             raise HTTPException(
                 status_code=404,
-                detail="No chat models found. Please install one with: ollama pull llama3.2",
+                detail="No chat models found. Please install one with: ollama pull llama3.2:3b",
             )
 
         return chat_models

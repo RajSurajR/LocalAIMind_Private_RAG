@@ -1,9 +1,12 @@
 """PDF loading and chunking utilities.
 
-we convert a PDF into text
-chunks before indexing them into a vector store. The chunking step is critical
-because a large PDF is rarely searched as one giant block; retrieval works best
-with smaller, context-rich chunks.
+we convert a PDF into text chunks before indexing them into a vector store.
+The chunking step is critical because a large PDF is rarely searched as one giant block;
+retrieval works best with smaller, context-rich chunks.
+contain:
+1. consturctor store : chunk_size, chunk_overlap, text_splitter obj
+2. load_pdf method :  file path => [load pdf get contains] => return list of docs
+3. split_document : list of docs => [split document in chunks] => return list of text_chunks
 """
 
 import logging

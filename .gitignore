@@ -37,7 +37,10 @@ temp.txt
 chroma/
 chroma_db/
 vectorstore/
+vectors/
 embeddings/
+*.sqlite3
+*.db
 
 # Logs
 logs/
