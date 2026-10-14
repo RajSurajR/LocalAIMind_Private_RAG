@@ -5,6 +5,12 @@ This class ties the vector retrieval and LLM response together. The usual flow i
 2. build context from the retrieved passages
 3. ask the LLM to answer using that context
 4. optionally use a thinking-capable model for deeper reasoning
+
+contains : 
+1. constructor : vector_db obj, LLMManager obj 
+2. build_chain : i/p:{context:_ , question: _} => get_rag_prompt() => llm => StrOutputParser
+3. get_response : (question, fromatted_context) => build_chain and invoke chain by give question
+4. get_thinking_response : (question, formatted_conted) => use ollama.chat and show thinking
 """
 
 import ollama

@@ -26,6 +26,11 @@ class PDFService:
     """Service for PDF upload, listing, and deletion."""
 
     def __init__(self):
+        """contain: 
+        -> DocumentProcessor obj (rag_module method: load_pdf, split_docs])
+        -> VectorStore obj (rag_module method: create_vector_db, delete_collection)
+        -> storeage dir and create dir
+        """        
         self.doc_processor = DocumentProcessor(chunk_size=7500, chunk_overlap=100)
         self.vector_store = VectorStore(
             embedding_model=settings.EMBEDDING_MODEL,
@@ -37,7 +42,7 @@ class PDFService:
     async def upload_and_process(self, file: UploadFile, db: Session) -> PDFMetadata:
         """Save a PDF, split it into chunks, index it, and record metadata."""
         pdf_id = self._generate_pdf_id(file.filename)
-
+        # file_name : pdfId_OriginalFileName
         file_path = self.storage_dir / f"{pdf_id}_{file.filename}"
         content = await file.read()
         with open(file_path, "wb") as file_handle:
@@ -46,7 +51,7 @@ class PDFService:
         documents = self.doc_processor.load_pdf(file_path)
         chunks = self.doc_processor.split_documents(documents)
 
-        for index, chunk in enumerate(chunks):
+        for index, chunk in enumerate(chunks): # add metadata to every chunk
             chunk.metadata.update({
                 "pdf_id": pdf_id,
                 "pdf_name": file.filename,
@@ -56,7 +61,7 @@ class PDFService:
 
         collection_name = f"pdf_{abs(hash(file.filename + pdf_id))}"
         self.vector_store.create_vector_db(
-            documents=chunks,
+            documents_chunks=chunks,
             collection_name=collection_name,
         )
 

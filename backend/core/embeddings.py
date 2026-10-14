@@ -1,7 +1,11 @@
 """Vector store wrapper for the local RAG pipeline.
 
-This module creates a persistent Chroma vector database and stores chunks from
-PDFs so we can later retrieve the most relevant passages during a question.
+This module creates a persistent Chroma vector database and stores chunks from PDFs 
+so we can later retrieve the most relevant passages during a question.
+contains:
+1. constructor : embedding_model, persist_directory, vector_db = null, mkdir of presist_directory
+2. create_vector_db : document_chunks, collection_name => create vector_db => return vector_db obj
+3. delete_vector_db : _ => delete vector db and update vector_db obj to null => _
 """
 
 import logging

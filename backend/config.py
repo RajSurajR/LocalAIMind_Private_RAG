@@ -20,7 +20,7 @@ class Settings(BaseSettings):
 
     OLLAMA_HOST: str = "http://localhost:11434"
     EMBEDDING_MODEL: str = "nomic-embed-text"
-    DEFAULT_CHAT_MODEL: str = "llama3.2"
+    DEFAULT_CHAT_MODEL: str = "llama3.2:3b"
 
     class Config:
         env_file = ".env"
