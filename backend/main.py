@@ -36,6 +36,12 @@ def root():
     """Basic status endpoint for the API."""
     return "backend running.."
 
+from backend.routers import health, models, pdfs, query
+
+app.include_router(pdfs.router)
+app.include_router(query.router)
+app.include_router(models.router)
+app.include_router(health.router)
 
 if __name__ == "__main__":
     import uvicorn
