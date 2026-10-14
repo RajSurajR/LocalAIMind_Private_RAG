@@ -34,7 +34,11 @@ app.add_middleware(
 @app.get("/")
 def root():
     """Basic status endpoint for the API."""
-    return "backend running.."
+    return {
+        "message": "LocalAIMind Private RAG API",
+        "docs": "/docs",
+        "health": "/api/v1/health",
+    }
 
 from backend.routers import health, models, pdfs, query
 
