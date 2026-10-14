@@ -8,7 +8,17 @@ logic reusable.
 from sqlalchemy.orm import Session
 
 from backend.database import SessionLocal
+from backend.services.pdf_service import PDFService
+from backend.services.rag_service import RAGService
 
+
+def get_pdf_service() -> PDFService:
+    """Return a PDFService instance."""
+    return PDFService()
+
+def get_rag_service() -> RAGService:
+    """Return a RAGService instance."""
+    return RAGService()
 
 def get_db():
     """Yield a database session for each request."""
