@@ -84,6 +84,91 @@ These files define the HTTP endpoints exposed by the API.
 - `health.py`  
   Checks whether the backend and Ollama are reachable and reports some summary data about the system.
 
+## FastAPI API list
+
+This backend is built with FastAPI and exposes the following routes:
+
+| Method | Endpoint | What it does |
+| --- | --- | --- |
+| GET | `/` | Returns basic API information and links to docs and health. |
+| GET | `/docs` | Swagger UI for interactive testing of the API. |
+| GET | `/redoc` | Alternative ReDoc documentation view. |
+| GET | `/api/v1/health` | Checks whether the backend and Ollama are running and reports storage statistics. |
+| GET | `/api/v1/models` | Lists available Ollama chat models. |
+| GET | `/api/v1/pdfs` | Lists every uploaded PDF and its metadata. |
+| POST | `/api/v1/pdfs/upload` | Uploads a PDF file, indexes it, and stores it in the vector database. |
+| DELETE | `/api/v1/pdfs/{pdf_id}` | Deletes a PDF file, its vector collection, and its database record. |
+| POST | `/api/v1/query` | Sends a question and receives an answer based on the relevant PDF content. |
+| GET | `/api/v1/sessions/{session_id}/messages` | Returns the full conversation history for a chat session. |
+
+### Route details
+
+#### Health check
+`GET /api/v1/health`
+
+Used to verify that:
+- the FastAPI app is running
+- Ollama is reachable
+- Chroma vector collections exist
+- uploaded PDF records are being tracked in SQLite
+
+#### Available models
+`GET /api/v1/models`
+
+Returns the Ollama chat models that are available for inference. This endpoint excludes embedding-only models.
+
+#### PDF upload
+`POST /api/v1/pdfs/upload`
+
+Accepts a multipart PDF file and performs all indexing work:
+1. file is saved to disk
+2. PDF is read and split into chunks
+3. chunks are embedded into Chroma
+4. metadata is stored in SQLite
+
+#### PDF listing
+`GET /api/v1/pdfs`
+
+Returns metadata such as:
+- PDF ID
+- file name
+- vector collection name
+- number of chunks
+- page count
+- upload date
+
+#### PDF deletion
+`DELETE /api/v1/pdfs/{pdf_id}`
+
+Removes the file and vector collection to keep the local knowledge base clean.
+
+#### Query / RAG
+`POST /api/v1/query`
+
+This is the main AI endpoint. The request body usually contains:
+
+```json
+{
+  "question": "Summarize the document in simple terms",
+  "model": "llama3.2",
+  "pdf_ids": ["pdf_123"],
+  "session_id": "session-01"
+}
+```
+
+The backend then:
+1. saves the user message
+2. retrieves relevant chunks from the vector store
+3. creates a context block for the LLM
+4. asks Ollama to answer using only that retrieved context
+5. saves the assistant response and sources
+6. returns the answer to the client
+
+#### Session history
+`GET /api/v1/sessions/{session_id}/messages`
+
+Returns prior conversation messages for a given session, including role, message content, and source metadata.
+
 ## Data flow
 
 1. A PDF is uploaded to the API through the PDF route.
@@ -106,3 +191,17 @@ This split keeps responsibilities clean:
 - `config.py` handles environment settings
 
 This makes the backend easier to extend, easier to debug, and easier to maintain as more features are added.
+
+## Run the FastAPI backend
+
+From the project root, start the app with:
+
+```bash
+uvicorn backend.main:app --reload
+```
+
+Then open:
+- http://localhost:8000/docs
+- http://localhost:8000/redoc
+
+The Swagger UI shows all FastAPI endpoints and lets you test them directly.
