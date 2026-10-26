@@ -27,6 +27,7 @@ export function ChatPage() {
 
   const sendMessage = useRagQueryStore((state) => state.sendMessage)
   const loadSessionMessages = useRagQueryStore((state) => state.loadSessionMessages)
+  const clearMessages = useRagQueryStore((state) => state.clearMessages)
 
   useEffect(() => {
     if (currentSessionId) {
@@ -34,10 +35,11 @@ export function ChatPage() {
     }
   }, [currentSessionId, loadSessionMessages])
 
-  const activeSession = sessions.find((session) => session.id === currentSessionId) || sessions[0] || null
+  const activeSession = sessions.find((session) => session.id === currentSessionId) || null
 
   const handleNewChat = () => {
-    createSession()
+    setCurrentSession(null)
+    clearMessages()
   }
 
   const handleRenameSession = (sessionId) => {
@@ -82,7 +84,7 @@ export function ChatPage() {
           <ChatSection
             messages={messages}
             selectedModel={selectedModel}
-            sessionTitle={activeSession?.title || 'New chat'}
+            sessionTitle={activeSession?.title || 'Start New chat'}
             isSending={isSending}
           />
 

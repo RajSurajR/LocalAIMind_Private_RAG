@@ -242,18 +242,23 @@ class RAGService:
     ) -> ChatMessage:
         """Save a chat message and update its session activity."""
         # find existing chat_session and add chatmessage
-        now = datetime.now()
         try:
+            now = datetime.now()
             session = db.query(ChatSession).filter(ChatSession.session_id == session_id).first()
             if not session:
+                title = content.strip() if content and content else "Chat Session"
+                if len(title) > 32: 
+                    title = f"{title[:29].strip()}..."
+
                 session = ChatSession(
                     session_id=session_id,
-                    created_at=datetime.now(),
-                    last_active=datetime.now(),
+                    title=title,
+                    created_at=now,
+                    last_active=now,
                 )
                 db.add(session)
             else:
-                session.last_active = datetime.now()
+                session.last_active = now
 
             message = ChatMessage(
                 session_id=session_id,
@@ -282,3 +287,47 @@ class RAGService:
             .order_by(ChatMessage.timestamp)
             .all()
         )
+    
+    def get_sessions(self, db: Session) -> List[ChatSession]:
+        """Return all chat sessions ordered by most recent activity."""
+        return (
+            db.query(ChatSession)
+            .order_by(ChatSession.last_active.desc())
+            .all()
+        )
+            
+
+    def rename_session(self, session_id: str, new_title: str, db: Session) -> bool:
+        """Rename a chat session."""
+        try:
+            session = db.query(ChatSession).filter(ChatSession.session_id == session_id).first()
+            if not session:
+                return False
+            session.title = new_title
+            db.commit()
+            return True
+        except Exception:
+            db.rollback()
+            logger.exception(
+                "failed to rename chat session %s",
+                session_id,
+            )
+            raise
+        
+    def delete_session(self, session_id: str, db: Session) -> bool:
+        """Delete a chat session and its messages."""
+        try:
+            session = db.query(ChatSession).filter(ChatSession.session_id == session_id).first()
+            if not session:
+                return False
+            db.query(ChatMessage).filter(ChatMessage.session_id == session_id).delete()
+            db.delete(session)
+            db.commit()
+            return True
+        except Exception:
+            db.rollback()
+            logger.exception(
+                "failed to delete chat session %s",
+                session_id,
+            )
+            raise

@@ -15,12 +15,13 @@ export const apiClient = axios.create({
   },
 });
 
-
+// models api
 export const getModels = async () => {
   const response = await apiClient.get('/models')
   return response.data
 }
 
+// pdfs api
 export const listPdfs = async () => {
   const response = await apiClient.get('/pdfs')
   return response.data
@@ -44,6 +45,7 @@ export const deletePdfApi = async (pdfId) => {
   return response.data
 }
 
+// session and message api
 export const queryRagApi = async (payload) => {
   const response = await apiClient.post('/query', payload)
   return response.data
@@ -54,7 +56,21 @@ export const listSessionsApi = async () => {
   return response.data
 }
 
+export const renameSessionApi = async (sessionId, newTitle) => {
+  const response = await apiClient.put(`/session/${sessionId}`, null, {
+    params: {
+      new_title: newTitle,
+    },
+  })
+  return response.data
+}
+
+export const deleteSessionApi = async (sessionId) => {
+  const response = await apiClient.delete(`/session/${sessionId}`)
+  return response.data
+}
+
 export const getSessionMessagesApi = async (sessionId) => {
-  const response = await apiClient.get(`/sessions/${sessionId}/messages`)
+  const response = await apiClient.get(`/session/${sessionId}/messages`)
   return response.data
 }

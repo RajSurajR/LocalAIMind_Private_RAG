@@ -15,8 +15,8 @@ export function Sidebar({
   const [openMenuId, setOpenMenuId] = useState(null)
 
   return (
-    <aside className="flex h-screen w-full max-w-[340px] flex-col border-r border-slate-800 bg-slate-900/80 backdrop-blur-sm">
-      <div className="border-b border-slate-800 p-4">
+    <aside className="flex h-screen w-full max-w-85 flex-col border-r border-slate-800 bg-slate-900/80 backdrop-blur-sm">
+      <div className="border-b border-slate-800 py-5">
         <div className="mb-3 flex items-center gap-3 px-1">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-300">
             <MessageSquareText size={18} />
@@ -30,7 +30,7 @@ export function Sidebar({
         <button
           type="button"
           onClick={onNewChat}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition hover:bg-indigo-400"
+          className="flex w-11/12  px-3 py-3 ml-4 items-center justify-center gap-2 rounded-xl bg-indigo-500 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition hover:bg-indigo-400"
         >
           <Plus size={16} />
           New Chat
@@ -50,7 +50,6 @@ export function Sidebar({
           ) : (
             sessions.map((session) => {
               const isActive = session.id === currentSessionId
-
               return (
                 <div
                   key={session.id}

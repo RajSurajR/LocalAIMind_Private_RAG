@@ -1,4 +1,4 @@
-import { Bot, Sparkles, UserRound } from 'lucide-react'
+import { Bot, BotMessageSquare, Sparkles, UserRound } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
 
@@ -7,7 +7,7 @@ function TypingBubble() {
     <div className="flex justify-start">
       <div className="max-w-xl rounded-2xl border border-slate-700 bg-slate-900/80 px-4 py-3 shadow-sm shadow-slate-950/30">
         <div className="flex items-center gap-2 text-slate-300">
-          <Bot size={15} className="text-indigo-300" />
+          <BotMessageSquare size={15} className="text-indigo-300" />
           <span className="flex items-center gap-1">
             <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400 [animation-delay:-0.2s]" />
             <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400 [animation-delay:-0.1s]" />
@@ -104,7 +104,7 @@ export function ChatSection({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="flex items-center justify-between border-b border-slate-800 bg-slate-900/70 px-5 py-4 backdrop-blur-sm">
+      <header className="flex items-center justify-between border-b border-slate-800 bg-slate-900/70 px-5 py-3 backdrop-blur-sm">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-300">Local RAG</p>
           <h1 className="mt-1 text-lg font-semibold text-slate-100">{sessionTitle || 'New chat'}</h1>
@@ -121,7 +121,7 @@ export function ChatSection({
           <div className="flex h-full items-center justify-center">
             <div className="max-w-md rounded-2xl border border-dashed border-slate-700 bg-slate-900/60 p-8 text-center">
               <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-300">
-                <Bot size={22} />
+                <BotMessageSquare size={22} />
               </div>
               <h2 className="text-lg font-semibold text-slate-100">Start your local knowledge search</h2>
               <p className="mt-2 text-sm leading-6 text-slate-400">

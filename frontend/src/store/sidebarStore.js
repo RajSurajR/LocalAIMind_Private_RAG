@@ -2,10 +2,12 @@ import { create } from 'zustand'
 
 import {
   deletePdfApi,
+  deleteSessionApi,
   getModels,
   listPdfs,
   listSessionsApi,
   notifyBackendOffline,
+  renameSessionApi,
   uploadPdfApi,
 } from '../api/localRagApi'
 import { toast } from 'sonner'
@@ -28,12 +30,14 @@ export const useSidebarStore = create((set, get) => ({
   models: fallbackModels,
   isInitializing: true,
   isUploading: false,
+  isDeleting: false,
 
   initializeSidebar: async () => {
     set({ isInitializing: true })
 
     try {
       const savedSessions = await listSessionsApi()
+      
       const normalizedSessions = Array.isArray(savedSessions)
         ? savedSessions.map((session) => ({
             id: session.session_id,
@@ -44,7 +48,7 @@ export const useSidebarStore = create((set, get) => ({
 
       set({
         sessions: normalizedSessions,
-        currentSessionId: normalizedSessions[0]?.id ?? null,
+        // currentSessionId: normalizedSessions[0]?.id ?? null,
       })
     } catch (error) {
       set({
@@ -54,6 +58,8 @@ export const useSidebarStore = create((set, get) => ({
       toast.error('Server error. Previous sessions are unavailable.', {
         duration: 4000,
       })
+      set({ isInitializing: false })
+      return;
     }
 
     await get().fetchModels()
@@ -66,43 +72,53 @@ export const useSidebarStore = create((set, get) => ({
     set({ currentSessionId: sessionId })
   },
 
-  // create a new session fron backend and then add it to session state.
+  // keep the app in a blank draft until the first message is sent.
+  // the real session is created by the backend when the query succeeds.
   createSession: () => {
-    const sessionId = `session_${Date.now()}_${Math.random().toString(16).slice(2)}`
-    const session = normalizeSession(sessionId, 'New chat')
-
-    set((state) => ({
-      sessions: [session, ...state.sessions],
-      currentSessionId: sessionId,
-    }))
-
-    return sessionId
+    set({ currentSessionId: null })
+    return null
   },
 
   // rename a session in to backend and then update the session state.
-  renameSession: (sessionId, nextTitle) => {
-    const trimmed = String(nextTitle || '').trim()
-    if (!sessionId || !trimmed) return
+  renameSession: async (sessionId, nextTitle) => {
+    const trimTitle = String(nextTitle || '').trim()
+    if (!sessionId || !trimTitle) return
 
-    set((state) => ({
-      sessions: state.sessions.map((session) =>
-        session.id === sessionId ? { ...session, title: trimmed } : session,
-      ),
-    }))
+    try {
+      await renameSessionApi(sessionId, trimTitle)
+
+      set((state) => ({
+        sessions: state.sessions.map((session) =>
+          session.id === sessionId ? { ...session, title: trimTitle } : session,
+        ),
+      }))
+    } catch (error) {
+      toast.error('Could not rename this chat. Please try again later.', {
+        duration: 5000,
+      })
+    }
   },
 
   // delete a session from backend and remove it from session state.
-  deleteSession: (sessionId) => {
-    set((state) => {
-      const remaining = state.sessions.filter((session) => session.id !== sessionId)
-      const nextCurrentId =
-        state.currentSessionId === sessionId ? remaining[0]?.id ?? null : state.currentSessionId
+  deleteSession: async (sessionId) => {
+    try {
+      await deleteSessionApi(sessionId)
 
-      return {
-        sessions: remaining,
-        currentSessionId: nextCurrentId,
-      }
-    })
+      set((state) => {
+        const remaining = state.sessions.filter((session) => session.id !== sessionId)
+        const nextCurrentId =
+          state.currentSessionId === sessionId ? remaining[0]?.id ?? null : state.currentSessionId
+
+        return {
+          sessions: remaining,
+          currentSessionId: nextCurrentId,
+        }
+      })
+    } catch (error) {
+      toast.error('Could not delete this chat. Please verify the backend connection.', {
+        duration: 5000,
+      })
+    }
   },
 
   setSelectedModel: (modelName) => {

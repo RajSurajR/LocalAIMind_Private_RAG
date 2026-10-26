@@ -50,6 +50,13 @@ class QueryResponse(BaseModel):
     message_id: int
 
 
+class SessionSummary(BaseModel):
+    session_id: str
+    title: Optional[str] = None
+    created_at: datetime
+    last_active: datetime
+
+
 class ModelInfo(BaseModel):
     name: str
     size: int
