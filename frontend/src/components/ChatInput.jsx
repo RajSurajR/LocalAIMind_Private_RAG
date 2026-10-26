@@ -63,9 +63,10 @@ export function ChatInput({
             value={selectedModel}
             onChange={(event) => onModelChange(event.target.value)}
             className="bg-transparent text-sm text-slate-100 outline-none"
+            // className="bg-transparent text-sm text-slate-100 outline-none"
           >
             {models.map((model) => (
-              <option key={model.name} value={model.name} className="bg-slate-900 text-slate-100">
+              <option key={model.name} value={model.name} className="bg-slate-900 text-slate-100 p-1">
                 {model.name}
               </option>
             ))}
@@ -87,7 +88,7 @@ export function ChatInput({
           type="button"
           onClick={handleSubmit}
           disabled={!draft.trim() || isSending}
-          className="flex h-[52px] w-[52px] items-center justify-center rounded-2xl bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+          className="flex h-13 w-13 items-center justify-center rounded-2xl bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
           aria-label="Send message"
         >
           {isSending ? <LoaderCircle size={18} className="animate-spin" /> : <SendHorizontal size={18} />}
