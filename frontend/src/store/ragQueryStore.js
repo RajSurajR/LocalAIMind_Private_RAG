@@ -1,5 +1,10 @@
 import { create } from 'zustand'
+import { toast } from 'sonner'
 
+import {
+  getSessionMessagesApi,
+  queryRagApi,
+} from '../api/localRagApi'
 import { useSidebarStore } from './sidebarStore'
 
 const normalizeMessages = (rows = []) =>
@@ -20,12 +25,14 @@ const buildSessionTitle = (question) => {
 
 const createFallbackAnswer = (question) => `I’m currently offline or the backend isn’t running, so this is a demo answer for: "${question}".\n\nIn a real Local RAG setup, the app would query your uploaded PDFs with the selected Ollama model and return grounded content from the indexed documents.`
 
+
 export const useRagQueryStore = create((set, get) => ({
   messagesBySession: {},
   messages: [],
   isSending: false,
   isLoadingSession: false,
 
+  // sets the messages for a specific session in the store. It retrieves the messages for the given sessionId from the messagesBySession state and updates the messages state accordingly.
   setMessagesForSession: (sessionId) => {
     const sessionMessages = get().messagesBySession[sessionId] || []
     set({ messages: sessionMessages })
@@ -37,12 +44,7 @@ export const useRagQueryStore = create((set, get) => ({
     set({ isLoadingSession: true })
 
     try {
-      const response = await fetch(`/api/v1/sessions/${sessionId}/messages`)
-      if (!response.ok) {
-        throw new Error('Session history unavailable')
-      }
-
-      const payload = await response.json()
+      const payload = await getSessionMessagesApi(sessionId)
       const normalized = normalizeMessages(payload)
       const activeSessionId = useSidebarStore.getState().currentSessionId
 
@@ -57,6 +59,9 @@ export const useRagQueryStore = create((set, get) => ({
 
       return normalized
     } catch (error) {
+      toast.error('Could not load chat history for this session. Please try again later.', {
+        duration: 5000,
+      })
       set((state) => ({
         isLoadingSession: false,
         messagesBySession: {
@@ -125,24 +130,13 @@ export const useRagQueryStore = create((set, get) => ({
         .uploadedPdfs.map((pdf) => pdf.pdf_id || pdf.id)
         .filter(Boolean)
 
-      const response = await fetch('/api/v1/query', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          question: trimmedQuestion,
-          model: useSidebarStore.getState().selectedModel,
-          pdf_ids: pdfIds,
-          session_id: currentSessionId,
-        }),
+      const payload = await queryRagApi({
+        question: trimmedQuestion,
+        model: useSidebarStore.getState().selectedModel,
+        pdf_ids: pdfIds,
+        session_id: currentSessionId,
       })
 
-      if (!response.ok) {
-        throw new Error('Query failed')
-      }
-
-      const payload = await response.json()
       const answer = payload.answer || 'No answer returned.'
 
       set((state) => {
@@ -164,6 +158,9 @@ export const useRagQueryStore = create((set, get) => ({
       return answer
     } catch (error) {
       const fallbackAnswer = createFallbackAnswer(trimmedQuestion)
+      toast.error('Message failed to send.', {
+        duration: 5000,
+      })
 
       set((state) => {
         const existing = state.messagesBySession[currentSessionId] || []
