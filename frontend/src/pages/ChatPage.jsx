@@ -16,6 +16,7 @@ export function ChatPage() {
 
   const messages = useRagQueryStore((state) => state.messages)
   const isSending = useRagQueryStore((state) => state.isSending)
+  const attachedPdfIds = useRagQueryStore((state) => state.attachedPdfIds)
 
   const setCurrentSession = useSidebarStore((state) => state.setCurrentSession)
   const createSession = useSidebarStore((state) => state.createSession)
@@ -28,6 +29,8 @@ export function ChatPage() {
   const sendMessage = useRagQueryStore((state) => state.sendMessage)
   const loadSessionMessages = useRagQueryStore((state) => state.loadSessionMessages)
   const clearMessages = useRagQueryStore((state) => state.clearMessages)
+  const toggleAttachedPdf = useRagQueryStore((state) => state.toggleAttachedPdf)
+  const clearAttachedPdfIds = useRagQueryStore((state) => state.clearAttachedPdfIds)
 
   useEffect(() => {
     if (currentSessionId) {
@@ -38,8 +41,14 @@ export function ChatPage() {
   const activeSession = sessions.find((session) => session.id === currentSessionId) || null
 
   const handleNewChat = () => {
+    clearAttachedPdfIds()
     setCurrentSession(null)
     clearMessages()
+  }
+
+  const handleSelectSession = (sessionId) => {
+    clearAttachedPdfIds()
+    setCurrentSession(sessionId)
   }
 
   const handleRenameSession = (sessionId) => {
@@ -72,10 +81,12 @@ export function ChatPage() {
           sessions={sessions}
           currentSessionId={currentSessionId}
           uploadedPdfs={uploadedPdfs}
+          attachedPdfIds={attachedPdfIds}
           onNewChat={handleNewChat}
-          onSelectSession={setCurrentSession}
+          onSelectSession={handleSelectSession}
           onRenameSession={handleRenameSession}
           onDeleteSession={handleDeleteSession}
+          onToggleAttachPdf={toggleAttachedPdf}
           onDeletePdf={removePdf}
           brand="Local AI Mind"
         />
@@ -91,9 +102,11 @@ export function ChatPage() {
           <ChatInput
             models={models}
             selectedModel={selectedModel}
+            attachedPdfIds={attachedPdfIds}
             onModelChange={setSelectedModel}
             onSendMessage={handleSendMessage}
             onUploadPdf={handleUploadPdf}
+            onClearAttachedPdfs={clearAttachedPdfIds}
             isSending={isSending}
             isUploading={isUploading}
           />

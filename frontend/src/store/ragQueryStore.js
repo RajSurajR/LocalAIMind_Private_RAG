@@ -64,6 +64,7 @@ const setTitleIfDefault = (sessionId, question) => {
 export const useRagQueryStore = create((set, get) => ({
   messagesBySession: {}, //{ session_id : [msg], }
   messages: [],
+  attachedPdfIds: [],
   isSending: false,
   isLoadingSession: false,
 
@@ -71,6 +72,23 @@ export const useRagQueryStore = create((set, get) => ({
     set({
       messages: [],
     })
+  },
+
+  toggleAttachedPdf: (pdfId) => {
+    if (!pdfId) return
+
+    set((state) => {
+      const hasPdf = state.attachedPdfIds.includes(pdfId)
+      return {
+        attachedPdfIds: hasPdf
+          ? state.attachedPdfIds.filter((id) => id !== pdfId)
+          : [...state.attachedPdfIds, pdfId],
+      }
+    })
+  },
+
+  clearAttachedPdfIds: () => {
+    set({ attachedPdfIds: [] })
   },
 
   // show cache msg for selected sessionId
@@ -119,6 +137,7 @@ export const useRagQueryStore = create((set, get) => ({
     const sidebar = useSidebarStore.getState()
     const sessionId = sidebar.currentSessionId
     const hasSession = Boolean(sessionId)
+    const attachedPdfIds = get().attachedPdfIds
 
     const storageId = sessionId || createId('draft')
 
@@ -161,9 +180,11 @@ export const useRagQueryStore = create((set, get) => ({
 
     try {
       // get the all pdf_ids from the uploadedPdfs in the sidebar store and filter out any falsy values.
-      const pdfIds = sidebar.uploadedPdfs
-          .map((pdf) => pdf.pdf_id || pdf.id)
-          .filter(Boolean)
+      const pdfIds = attachedPdfIds.length
+        ? attachedPdfIds
+        : sidebar.uploadedPdfs
+            .map((pdf) => pdf.pdf_id || pdf.id)
+            .filter(Boolean)
 
       const payload = await queryRagApi({
         question: trimmedQuestion,
