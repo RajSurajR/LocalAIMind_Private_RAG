@@ -43,8 +43,8 @@ class ChatSession(Base):
     """One chat conversation session."""
 
     __tablename__ = "chat_sessions"
-
     session_id = Column(String, primary_key=True)
+    title = Column(String, nullable=True, default="Chat Session")
     created_at = Column(DateTime, nullable=False)
     last_active = Column(DateTime, nullable=False)
 

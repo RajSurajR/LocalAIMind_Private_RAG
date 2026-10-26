@@ -9,6 +9,7 @@ from backend.dependencies import get_db, get_pdf_service
 from backend.models import PDFListItem, PDFUploadResponse
 from backend.services.pdf_service import PDFService
 
+# upload pdf | get upload pdf | delete upload pdf
 router = APIRouter(
     prefix="/api/v1/pdfs",
     tags=["pdfs"]

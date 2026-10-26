@@ -5,11 +5,36 @@ import {
   getSessionMessagesApi,
   queryRagApi,
 } from '../api/localRagApi'
+
 import { useSidebarStore } from './sidebarStore'
+
+// ------------------------------------
+// Helpers
+// ------------------------------------
+const DEFAULT_TITLE = 'New chat'
+const MAX_TITLE_LENGTH = 30
+
+const createId = (prefix) =>
+  `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`
+
+const buildSessionTitle = (question) => {
+  const clean = String(question ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  if (!clean) return DEFAULT_TITLE
+
+  return clean.length > MAX_TITLE_LENGTH
+    ? `${clean.slice(0, MAX_TITLE_LENGTH).trimEnd()}…`
+    : clean
+}
+
+const shouldSetSessionTitle = (title) =>
+  !title?.trim() || title.trim() === DEFAULT_TITLE
 
 const normalizeMessages = (rows = []) =>
   rows.map((row) => ({
-    id: row.message_id ?? `${row.role}-${row.timestamp ?? Date.now()}-${Math.random()}`,
+    id: row.message_id ?? createId(row.role ?? 'message'),
     role: row.role,
     content: row.content ?? '',
     timestamp: row.timestamp ?? new Date().toISOString(),
@@ -17,58 +42,70 @@ const normalizeMessages = (rows = []) =>
     isTyping: false,
   }))
 
-const buildSessionTitle = (question) => {
-  const clean = String(question || '').trim().replace(/\s+/g, ' ')
-  if (!clean) return 'New chat'
-  return clean.length > 28 ? `${clean.slice(0, 28).trim()}…` : clean
+const createFallbackAnswer = (question) => 
+  `I’m currently offline or the backend isn’t running, so this is a demo answer for: "${question}".\n\nIn a real Local RAG setup, the app would query your uploaded PDFs with the selected Ollama model and return grounded content from the indexed documents.`
+
+// updates an existing session's title only if it still has the default title.
+const setTitleIfDefault = (sessionId, question) => {
+  const title = buildSessionTitle(question)
+
+  useSidebarStore.setState((state) => ({
+    sessions: state.sessions.map((session) =>
+        session.id === sessionId &&
+        shouldSetSessionTitle(session.title)
+          ? { ...session, title } : session
+      ),
+  }))
 }
 
-const createFallbackAnswer = (question) => `I’m currently offline or the backend isn’t running, so this is a demo answer for: "${question}".\n\nIn a real Local RAG setup, the app would query your uploaded PDFs with the selected Ollama model and return grounded content from the indexed documents.`
-
-
+// ------------------------------------
+// RAG Query Store
+// ------------------------------------
 export const useRagQueryStore = create((set, get) => ({
-  messagesBySession: {},
+  messagesBySession: {}, //{ session_id : [msg], }
   messages: [],
   isSending: false,
   isLoadingSession: false,
 
-  // sets the messages for a specific session in the store. It retrieves the messages for the given sessionId from the messagesBySession state and updates the messages state accordingly.
+  clearMessages: () => {
+    set({
+      messages: [],
+    })
+  },
+
+  // show cache msg for selected sessionId
   setMessagesForSession: (sessionId) => {
     const sessionMessages = get().messagesBySession[sessionId] || []
     set({ messages: sessionMessages })
   },
 
+  // load msgs from backend
   loadSessionMessages: async (sessionId) => {
     if (!sessionId) return []
 
     set({ isLoadingSession: true })
 
     try {
-      const payload = await getSessionMessagesApi(sessionId)
-      const normalized = normalizeMessages(payload)
-      const activeSessionId = useSidebarStore.getState().currentSessionId
+      const sessionMsg = await getSessionMessagesApi(sessionId)
+      const normalizedMessages = normalizeMessages(sessionMsg)
+      const isActive = useSidebarStore.getState().currentSessionId === sessionId
 
       set((state) => ({
-        messagesBySession: {
+        messagesBySession: { 
           ...state.messagesBySession,
-          [sessionId]: normalized,
+          [sessionId]: normalizeMessages,
         },
-        messages: activeSessionId === sessionId ? normalized : state.messages,
+        messages: isActive ? normalizedMessages : state.messages,
         isLoadingSession: false,
       }))
 
-      return normalized
+      return normalizedMessages
     } catch (error) {
+      console.log(error);
       toast.error('Could not load chat history for this session. Please try again later.', {
         duration: 5000,
       })
-      set((state) => ({
-        isLoadingSession: false,
-        messagesBySession: {
-          ...state.messagesBySession,
-          [sessionId]: state.messagesBySession[sessionId] || [],
-        },
-      }))
+      set({ isLoadingSession: false })
       return []
     }
   },
@@ -77,11 +114,13 @@ export const useRagQueryStore = create((set, get) => ({
     const trimmedQuestion = String(question || '').trim()
     if (!trimmedQuestion) return null
 
+    if(get().isSending) return null; // prevent overlapping sends
+
     const sidebar = useSidebarStore.getState()
-    let currentSessionId = sidebar.currentSessionId
-    if (!currentSessionId) {
-      currentSessionId = sidebar.createSession()
-    }
+    const sessionId = sidebar.currentSessionId
+    const hasSession = Boolean(sessionId)
+
+    const storageId = sessionId || createId('draft')
 
     const now = new Date().toISOString()
     const userMessage = {
@@ -102,55 +141,87 @@ export const useRagQueryStore = create((set, get) => ({
       isTyping: true,
     }
 
+    // update rag state only in this set callbacke
     set((state) => {
-      const existing = state.messagesBySession[currentSessionId] || []
-      const nextMessages = [...existing, userMessage, typingMessage]
-      const nextTitle = buildSessionTitle(trimmedQuestion)
-
-      useSidebarStore.setState((sidebarState) => ({
-        sessions: sidebarState.sessions.some((session) => session.id === currentSessionId)
-          ? sidebarState.sessions.map((session) =>
-              session.id === currentSessionId ? { ...session, title: nextTitle } : session,
-            )
-          : sidebarState.sessions,
-      }))
+      const existing = state.messagesBySession[storageId] ?? []
+      const updatedMessages = [...existing, userMessage, typingMessage]
 
       return {
         isSending: true,
         messagesBySession: {
           ...state.messagesBySession,
-          [currentSessionId]: nextMessages,
+          [storageId]: updatedMessages,
         },
-        messages: sidebar.currentSessionId === currentSessionId ? nextMessages : state.messages,
+        messages: updatedMessages,
       }
     })
+    // if(!hasSession) {
+    //   setTitleIfDefault(sessionId, trimmedQuestion)
+    // }
 
     try {
-      const pdfIds = useSidebarStore.getState()
-        .uploadedPdfs.map((pdf) => pdf.pdf_id || pdf.id)
-        .filter(Boolean)
+      // get the all pdf_ids from the uploadedPdfs in the sidebar store and filter out any falsy values.
+      const pdfIds = sidebar.uploadedPdfs
+          .map((pdf) => pdf.pdf_id || pdf.id)
+          .filter(Boolean)
 
       const payload = await queryRagApi({
         question: trimmedQuestion,
         model: useSidebarStore.getState().selectedModel,
         pdf_ids: pdfIds,
-        session_id: currentSessionId,
+        session_id: sidebar.currentSessionId || undefined,
       })
 
       const answer = payload.answer || 'No answer returned.'
+      const realSessionId = payload.session_id || storageId
+      
+      // register a newly created backend session.
+      if (!hasSession && realSessionId !== storageId) {
+        const title = buildSessionTitle(trimmedQuestion)
+        useSidebarStore.setState((sidebarState) => ({
+          sessions: [
+            {
+              id: realSessionId,
+              title,
+              createdAt: new Date().toISOString(),
+            },
+            ...sidebarState.sessions.filter(
+              (session) => session.id !== realSessionId
+            )
+          ],
+          currentSessionId: realSessionId,
+        }))
+      }
 
+      // replace typeing msg to answer msg
       set((state) => {
-        const existing = state.messagesBySession[currentSessionId] || []
+        const existing = state.messagesBySession[storageId] || []
         const updated = existing.map((message) =>
-          message.isTyping ? { ...message, content: answer, isTyping: false, timestamp: new Date().toISOString() } : message,
+          message.id === typingMessage.id 
+            ? { ...message,
+                content: answer,
+                sources: payload.sources ?? [],
+                isTyping: false, 
+                timestamp: new Date().toISOString() 
+              } 
+            : message,
         )
 
+        const messagesBySession = { ...state.messagesBySession }
+        delete messagesBySession[storageId]
+        messagesBySession[realSessionId] = updated
+
+        const activeSessionId =
+          useSidebarStore.getState().currentSessionId
+        
+        const isVisibleMsg =
+          activeSessionId === realSessionId ||
+          (!hasSession && activeSessionId == null)
+        
+
         return {
-          messagesBySession: {
-            ...state.messagesBySession,
-            [currentSessionId]: updated,
-          },
-          messages: useSidebarStore.getState().currentSessionId === currentSessionId ? updated : state.messages,
+          messagesBySession,
+          messages: isVisibleMsg ? updated : state.messages,
           isSending: false,
         }
       })
@@ -163,17 +234,27 @@ export const useRagQueryStore = create((set, get) => ({
       })
 
       set((state) => {
-        const existing = state.messagesBySession[currentSessionId] || []
+        const existing = state.messagesBySession[storageId] ?? []
         const updated = existing.map((message) =>
-          message.isTyping ? { ...message, content: fallbackAnswer, isTyping: false, timestamp: new Date().toISOString() } : message,
+          message.id == typingMessage.id 
+            ? { 
+                ...message,
+                content: fallbackAnswer,
+                isTyping: false,
+                timestamp: new Date().toISOString()
+              } 
+            : message,
         )
 
+        const activeSessionId = useSidebarStore.getState().currentSessionId
+        const isVisibleMsg =
+         activeSessionId === storageId || (!hasSession && activeSessionId == null)
         return {
           messagesBySession: {
             ...state.messagesBySession,
-            [currentSessionId]: updated,
+            [storageId]: updated,
           },
-          messages: useSidebarStore.getState().currentSessionId === currentSessionId ? updated : state.messages,
+          messages: isVisibleMsg ? updated : state.messages,
           isSending: false,
         }
       })
