@@ -18,7 +18,14 @@ function TypingBubble() {
     </div>
   )
 }
-
+<div class="max-w-xl rounded-2xl border border-slate-700 bg-slate-900/80 px-4 py-3 shadow-sm shadow-slate-950/30"><div class="flex items-center gap-2 text-slate-300">
+  <span class="flex items-center gap-1">
+    <span class="h-2 w-2 animate-bounce rounded-full bg-slate-400 [animation-delay:-0.2s]"></span>
+    <span class="h-2 w-2 animate-bounce rounded-full bg-slate-400 [animation-delay:-0.1s]"></span>
+    <span class="h-2 w-2 animate-bounce rounded-full bg-slate-400"></span>
+    </span>
+  
+  </div></div>
 function MessageBubble({ message }) {
   const isUser = message.role === 'user'
 
@@ -127,7 +134,7 @@ export function ChatSection({
             {messages.map((message) => (
               <MessageBubble key={message.id} message={message} />
             ))}
-            {isSending && <TypingBubble />}
+            {/* {isSending && <TypingBubble />} */}
             <div ref={endRef} />
           </div>
         )}

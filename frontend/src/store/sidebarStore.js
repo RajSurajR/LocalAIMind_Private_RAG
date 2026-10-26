@@ -1,5 +1,15 @@
 import { create } from 'zustand'
 
+import {
+  deletePdfApi,
+  getModels,
+  listPdfs,
+  listSessionsApi,
+  notifyBackendOffline,
+  uploadPdfApi,
+} from '../api/localRagApi'
+import { toast } from 'sonner'
+
 const fallbackModels = [
   { name: 'llama3.2:3b', size: 0, modified_at: 'local' },
 ]
@@ -22,21 +32,32 @@ export const useSidebarStore = create((set, get) => ({
   initializeSidebar: async () => {
     set({ isInitializing: true })
 
-    if (!get().sessions.length) {
-      const seedSessionId = `session_${Date.now()}_${Math.random().toString(16).slice(2)}`
+    try {
+      const savedSessions = await listSessionsApi()
+      const normalizedSessions = Array.isArray(savedSessions)
+        ? savedSessions.map((session) => ({
+            id: session.session_id,
+            title: session.title || 'New chat',
+            createdAt: session.created_at || new Date().toISOString(),
+          }))
+        : []
+
       set({
-        sessions: [normalizeSession(seedSessionId, 'New chat')],
-        currentSessionId: seedSessionId,
+        sessions: normalizedSessions,
+        currentSessionId: normalizedSessions[0]?.id ?? null,
+      })
+    } catch (error) {
+      set({
+        sessions: [],
+        currentSessionId: null,
+      })
+      toast.error('Server error. Previous sessions are unavailable.', {
+        duration: 4000,
       })
     }
 
     await get().fetchModels()
     await get().fetchUploadedPdfs()
-
-    const activeId = get().currentSessionId
-    if (!activeId && get().sessions.length) {
-      set({ currentSessionId: get().sessions[0].id })
-    }
 
     set({ isInitializing: false })
   },
@@ -45,6 +66,7 @@ export const useSidebarStore = create((set, get) => ({
     set({ currentSessionId: sessionId })
   },
 
+  // create a new session fron backend and then add it to session state.
   createSession: () => {
     const sessionId = `session_${Date.now()}_${Math.random().toString(16).slice(2)}`
     const session = normalizeSession(sessionId, 'New chat')
@@ -57,6 +79,7 @@ export const useSidebarStore = create((set, get) => ({
     return sessionId
   },
 
+  // rename a session in to backend and then update the session state.
   renameSession: (sessionId, nextTitle) => {
     const trimmed = String(nextTitle || '').trim()
     if (!sessionId || !trimmed) return
@@ -68,6 +91,7 @@ export const useSidebarStore = create((set, get) => ({
     }))
   },
 
+  // delete a session from backend and remove it from session state.
   deleteSession: (sessionId) => {
     set((state) => {
       const remaining = state.sessions.filter((session) => session.id !== sessionId)
@@ -85,14 +109,10 @@ export const useSidebarStore = create((set, get) => ({
     set({ selectedModel: modelName })
   },
 
+  // fetch all available models from backend and set models state.
   fetchModels: async () => {
     try {
-      const response = await fetch('/api/v1/models')
-      if (!response.ok) {
-        throw new Error('Models endpoint unavailable')
-      }
-
-      const data = await response.json()
+      const data = await getModels()
       const nextModels = Array.isArray(data) && data.length ? data : fallbackModels
       const nextSelection =
         nextModels.some((model) => model.name === get().selectedModel)
@@ -104,44 +124,36 @@ export const useSidebarStore = create((set, get) => ({
         selectedModel: nextSelection,
       })
     } catch (error) {
+      toast.error('Could not load available models.', {
+        duration: 4000,
+      })
       set({
         models: fallbackModels,
         selectedModel: 'llama3.2:3b',
+        uploadedPdfs: [],
       })
     }
   },
 
+  // fetch all uploade pdfs from backend and set uploadedpdfs state.
   fetchUploadedPdfs: async () => {
     try {
-      const response = await fetch('/api/v1/pdfs')
-      if (!response.ok) {
-        throw new Error('PDF list unavailable')
-      }
-
-      const data = await response.json()
+      const data = await listPdfs()
       set({ uploadedPdfs: Array.isArray(data) ? data : [] })
     } catch (error) {
+      toast.error('Could not load uploaded PDFs.', {
+        duration: 4000,
+      })
       set({ uploadedPdfs: [] })
     }
   },
 
+  // uploadpdf to backend and add it to uploadedpdfs state.
   uploadPdf: async (file) => {
-    const formData = new FormData()
-    formData.append('file', file)
-
     set({ isUploading: true })
 
     try {
-      const response = await fetch('/api/v1/pdfs/upload', {
-        method: 'POST',
-        body: formData,
-      })
-
-      if (!response.ok) {
-        throw new Error('PDF upload failed')
-      }
-
-      const payload = await response.json()
+      const payload = await uploadPdfApi(file)
       const uploadedPdf = {
         pdf_id: payload.pdf_id,
         name: payload.name,
@@ -158,6 +170,10 @@ export const useSidebarStore = create((set, get) => ({
 
       return uploadedPdf
     } catch (error) {
+      toast.error('PDF upload failed.', {
+        duration: 5000,
+      })
+
       const mockPdf = {
         pdf_id: `pdf_mock_${Date.now()}`,
         name: file.name,
@@ -176,14 +192,14 @@ export const useSidebarStore = create((set, get) => ({
     }
   },
 
+  // remove pdf from the uploadedPdfs state and also remove it from the backend.
   removePdf: async (pdfId) => {
     try {
-      const response = await fetch(`/api/v1/pdfs/${pdfId}`, { method: 'DELETE' })
-      if (!response.ok) {
-        throw new Error('Delete failed')
-      }
+      await deletePdfApi(pdfId)
     } catch (error) {
-      // keep local state working even without backend
+      toast.error('Could not delete this PDF.', {
+        duration: 5000,
+      })
     }
 
     set((state) => ({
