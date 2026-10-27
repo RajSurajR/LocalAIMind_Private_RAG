@@ -11,6 +11,7 @@ import {
   uploadPdfApi,
 } from '../api/localRagApi'
 import { toast } from 'sonner'
+import { useRagQueryStore } from './ragQueryStore'
 
 const fallbackModels = [
   { name: 'llama3.2:3b', size: 0, modified_at: 'local' },
@@ -220,6 +221,9 @@ export const useSidebarStore = create((set, get) => ({
 
     set((state) => ({
       uploadedPdfs: state.uploadedPdfs.filter((pdf) => pdf.pdf_id !== pdfId),
+    }))
+    useRagQueryStore.setState((state) => ({
+        attachedPdfIds : state.attachedPdfIds.filter((id) => id != pdfId)
     }))
   },
 }))

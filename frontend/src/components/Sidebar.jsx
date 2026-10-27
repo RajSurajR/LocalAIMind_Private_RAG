@@ -1,14 +1,16 @@
-import { FileText, MessageSquareText, MoreHorizontal, PencilLine, Plus, Trash2 } from 'lucide-react'
+import { Check, CheckCircle, FileText, MessageSquareText, MoreHorizontal, PencilLine, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 
 export function Sidebar({
   sessions,
   currentSessionId,
   uploadedPdfs,
+  attachedPdfIds = [],
   onNewChat,
   onSelectSession,
   onRenameSession,
   onDeleteSession,
+  onToggleAttachPdf,
   onDeletePdf,
   brand = 'Local AI Mind',
 }) {
@@ -123,33 +125,70 @@ export function Sidebar({
                 No PDFs indexed yet.
               </div>
             ) : (
-              uploadedPdfs.map((pdf) => (
-                <div
-                  key={pdf.pdf_id}
-                  className="flex items-center justify-between gap-2 rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2"
-                >
-                  <div className="flex min-w-0 items-center gap-2">
-                    <span className="rounded-lg bg-emerald-500/10 p-2 text-emerald-300">
-                      <FileText size={14} />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-slate-100">{pdf.name}</p>
-                      <p className="text-[10px] uppercase tracking-wide text-slate-500">
-                        {pdf.page_count || 0} pages
-                      </p>
+              uploadedPdfs.map((pdf) => {
+                const isAttached = attachedPdfIds.includes(pdf.pdf_id)
+                const menuKey = `pdf-${pdf.pdf_id}`
+
+                return (
+                  <div
+                    key={pdf.pdf_id}
+                    className="flex items-center justify-between gap-2 rounded-xl border border-slate-800 bg-slate-950/60 px-2 py-2"
+                  >
+                    <div className="flex min-w-0 flex-1 items-center gap-2">
+                      <span className="rounded-lg bg-emerald-500/10 p-2 text-emerald-300">
+                        <FileText size={14} />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-slate-100"  title={pdf.name}>{pdf.name}</p>
+                        <p className="text-[10px] uppercase tracking-wide text-slate-500">
+                          {pdf.page_count || 0} pages
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => onToggleAttachPdf?.(pdf.pdf_id)}
+                        className={`rounded-lg border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] transition ${
+                          isAttached
+                            ? 'border-indigo-500/50 bg-indigo-500/10 text-indigo-200'
+                            : 'border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-500'
+                        }`}
+                      >
+                        {isAttached ? <Check size={18}/> : <Plus size={18}/>}
+                      </button>
+
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setOpenMenuId(openMenuId === menuKey ? null : menuKey)}
+                          className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-800 hover:text-slate-200"
+                          aria-label={`More actions for ${pdf.name}`}
+                        >
+                          <MoreHorizontal size={14} />
+                        </button>
+
+                        {openMenuId === menuKey && (
+                          <div className="absolute right-0 z-30 mt-2 w-32 overflow-hidden rounded-xl border border-slate-700 bg-slate-900 shadow-2xl shadow-slate-950/70">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onDeletePdf(pdf.pdf_id)
+                                setOpenMenuId(null)
+                              }}
+                              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-300 transition hover:bg-slate-800"
+                            >
+                              <Trash2 size={14} />
+                              Delete
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-
-                  <button
-                    type="button"
-                    onClick={() => onDeletePdf(pdf.pdf_id)}
-                    className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-800 hover:text-red-300"
-                    aria-label={`Delete ${pdf.name}`}
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              ))
+                )
+              })
             )}
           </div>
         </div>

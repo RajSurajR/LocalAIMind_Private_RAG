@@ -1,12 +1,14 @@
-import { LoaderCircle, SendHorizontal, Sparkles, UploadCloud } from 'lucide-react'
+import { LoaderCircle, SendHorizontal, Sparkles, UploadCloud, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 
 export function ChatInput({
   models,
   selectedModel,
+  attachedPdfIds = [],
   onModelChange,
   onSendMessage,
   onUploadPdf,
+  onClearAttachedPdfs,
   isSending,
   isUploading = false,
 }) {
@@ -39,15 +41,37 @@ export function ChatInput({
   return (
     <div className="border-t border-slate-800 bg-slate-900/80 p-4 backdrop-blur-sm">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm font-medium text-slate-200 transition hover:border-indigo-500/50 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={isUploading}
-        >
-          <UploadCloud size={15} className="text-indigo-300" />
-          {isUploading ? 'Uploading...' : 'Add PDF'}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm font-medium text-slate-200 transition hover:border-indigo-500/50 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isUploading}
+          >
+            <UploadCloud size={15} className="text-indigo-300" />
+            {isUploading ? 'Uploading...' : 'Add PDF'}
+          </button>
+
+
+          {attachedPdfIds.length > 0 && (
+            <div className="flex items-center">
+              <span className="inline-flex items-center gap-1 rounded-full border border-indigo-500/40 bg-indigo-500/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-indigo-200">
+                {attachedPdfIds.length} pdfs attached
+
+                <button
+                  type="button"
+                  onClick={onClearAttachedPdfs}
+                  title="Clear all attached PDFs"
+                  aria-label="Clear all attached PDFs"
+                  className="inline-flex items-center justify-center rounded-md p-0.5 text-slate-400 transition hover:bg-red-500/10 hover:text-red-300"
+                >
+                  <X size={18} />
+                </button>
+              </span>
+            </div>
+          )}
+
+        </div>
 
         <input
           ref={fileInputRef}
