@@ -1,4 +1,4 @@
-import { Bot, BotMessageSquare, Sparkles, UserRound } from 'lucide-react'
+import { BotMessageSquare, Sparkles, UserRound } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
 
@@ -39,7 +39,7 @@ function MessageBubble({ message }) {
         }`}
       >
         <div className="mb-2 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.15em] opacity-80">
-          {isUser ? <UserRound size={12} /> : <Bot size={12} />}
+          {isUser ? <UserRound size={12} /> : <BotMessageSquare size={12} />}
           {isUser ? 'You' : 'Local RAG'}
         </div>
 

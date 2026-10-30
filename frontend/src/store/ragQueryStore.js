@@ -111,7 +111,7 @@ export const useRagQueryStore = create((set, get) => ({
       set((state) => ({
         messagesBySession: { 
           ...state.messagesBySession,
-          [sessionId]: normalizeMessages,
+          [sessionId]: normalizedMessages,
         },
         messages: isActive ? normalizedMessages : state.messages,
         isLoadingSession: false,
@@ -119,7 +119,6 @@ export const useRagQueryStore = create((set, get) => ({
 
       return normalizedMessages
     } catch (error) {
-      console.log(error);
       toast.error('Could not load chat history for this session. Please try again later.', {
         duration: 5000,
       })
@@ -160,7 +159,7 @@ export const useRagQueryStore = create((set, get) => ({
       isTyping: true,
     }
 
-    // update rag state only in this set callbacke
+    // update rag state only in this set callback
     set((state) => {
       const existing = state.messagesBySession[storageId] ?? []
       const updatedMessages = [...existing, userMessage, typingMessage]
