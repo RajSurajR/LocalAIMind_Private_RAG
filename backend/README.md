@@ -99,7 +99,10 @@ This backend is built with FastAPI and exposes the following routes:
 | POST | `/api/v1/pdfs/upload` | Uploads a PDF file, indexes it, and stores it in the vector database. |
 | DELETE | `/api/v1/pdfs/{pdf_id}` | Deletes a PDF file, its vector collection, and its database record. |
 | POST | `/api/v1/query` | Sends a question and receives an answer based on the relevant PDF content. |
-| GET | `/api/v1/sessions/{session_id}/messages` | Returns the full conversation history for a chat session. |
+| GET | `/api/v1/sessions` | Returns all saved chat sessions with metadata like title, creation time, and last active time. |
+| GET | `/api/v1/session/{session_id}/messages` | Returns the full conversation history for a chat session. |
+| PUT | `/api/v1/session/{session_id}` | Renames an existing chat session. |
+| DELETE | `/api/v1/session/{session_id}` | Deletes a chat session and all associated messages. |
 
 ### Route details
 
@@ -164,10 +167,31 @@ The backend then:
 5. saves the assistant response and sources
 6. returns the answer to the client
 
+#### Session list
+`GET /api/v1/sessions`
+
+Returns every saved chat session with summary information such as:
+- session ID
+- chat title
+- creation timestamp
+- last activity timestamp
+
+This is used by the frontend sidebar to populate the session list.
+
 #### Session history
-`GET /api/v1/sessions/{session_id}/messages`
+`GET /api/v1/session/{session_id}/messages`
 
 Returns prior conversation messages for a given session, including role, message content, and source metadata.
+
+#### Rename session
+`PUT /api/v1/session/{session_id}`
+
+Updates the title of an existing session. The body is not a JSON object here; the current implementation accepts a plain `new_title` query parameter or string value supplied by the route handler, and rejects empty titles with a 400 error.
+
+#### Delete session
+`DELETE /api/v1/session/{session_id}`
+
+Deletes the selected session and all related messages from SQLite.
 
 ## Data flow
 
