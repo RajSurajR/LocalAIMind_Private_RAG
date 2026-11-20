@@ -16,73 +16,108 @@ The architecture is intentionally split into small modules so every file has one
 Main package for the API.
 
 - `__init__.py`  
-  Marks the backend directory as a Python package.
+  - Use: marks the folder as a Python package and allows imports such as `from backend...`.
+  - What it does: keeps the backend organized as a reusable package rather than a loose script folder.
 
 - `main.py`  
-  Creates the FastAPI app, adds CORS, and registers all routers. This is the startup file for the server.
+  - Use: application startup file.
+  - Main functions: `root()`, and the app initialization with `FastAPI()`.
+  - What it does: creates the API, enables CORS for the frontend, registers the routers for PDFs, queries, model listing, and health checks, and starts the server with Uvicorn.
 
 - `config.py`  
-  Stores environment configuration such as model names, vector path, PDF storage path, and database URL.
+  - Use: application settings file.
+  - Main functions: `Settings` class and `settings` instance.
+  - What it does: centralizes paths, database URL, vector DB directory, PDF upload folder, and default Ollama model values. This avoids hardcoding configuration in multiple files.
 
 - `database.py`  
-  Creates the SQLite database and defines the database models: uploaded PDFs, chat sessions, and chat messages.
+  - Use: persistence layer for SQLite.
+  - Main functions: SQLAlchemy `engine`, `SessionLocal`, `Base`, and model classes `PDFMetadata`, `ChatSession`, and `ChatMessage`.
+  - What it does: creates the local SQLite database, defines the tables for uploaded PDFs and chat history, and initializes the database schema when the backend starts.
 
 - `models.py`  
-  Declares the request and response schemas used by FastAPI for validation and consistent API output.
+  - Use: schema and validation layer for API requests/responses.
+  - Main functions: request/response Pydantic models such as `QueryRequest`, `QueryResponse`, `PDFUploadResponse`, `SessionSummary`, and `HealthResponse`.
+  - What it does: validates incoming request data and defines a consistent structure for the frontend to consume.
 
 - `dependencies.py`  
-  Provides reusable dependency functions like database sessions and service instances for the route handlers.
+  - Use: dependency injection layer for FastAPI.
+  - Main functions: `get_db()`, `get_pdf_service()`, and `get_rag_service()`.
+  - What it does: provides shared database sessions and service objects to each route without repeating boilerplate code.
 
 - `README.md`  
-  Explains the project structure and the purpose of each module.
+  - Use: developer documentation.
+  - What it does: explains the project structure, startup steps, API routes, and module responsibilities for new contributors.
 
 #### backend/core/
 This folder contains the reusable core RAG logic.
 
 - `__init__.py`  
-  Exposes the core RAG classes used by the service layer.
+  - Use: package marker for the core module.
+  - What it does: makes the core classes importable from the rest of the application.
 
 - `document.py`  
-  Loads a PDF file and breaks the content into manageable text chunks. This prepares the raw content for vector storage and retrieval.
+  - Use: PDF extraction and chunk generation.
+  - Main functions: `DocumentProcessor.__init__()`, `load_pdf()`, and `split_documents()`.
+  - What it does: reads a PDF file, converts it into text documents, and splits large content into smaller chunks suitable for embedding and retrieval.
 
 - `embeddings.py`  
-  Wraps the embedding model and creates a persistent Chroma database. This stores document chunks as vectors for semantic search.
+  - Use: vector database creation and embedding storage.
+  - Main functions: `VectorStore.__init__()`, `create_vector_db()`, and `delete_collection()`.
+  - What it does: connects to the local Ollama embedding model, creates a persistent Chroma collection, and stores document chunks for semantic search.
 
 - `llm.py`  
-  Defines `LLMManager`, which configures the Ollama chat model and keeps the prompt templates for query expansion and answer generation in one place.
+  - Use: LLM and prompt management.
+  - Main functions: `LLMManager.__init__()`, `get_query_prompt()`, `get_rag_prompt()`, and `supports_thinking()`.
+  - What it does: configures the Ollama chat model and creates prompt templates for query expansion and final answer generation.
 
 - `rag.py`  
-  Defines `RAGPipeline`, which connects retrieval and generation together to produce answers from the selected document chunks.
+  - Use: end-to-end retrieval and answer generation pipeline.
+  - Main functions: `RAGPipeline.__init__()`, `build_chain()`, `get_response()`, and `get_thinking_response()`.
+  - What it does: combines vector retrieval and LLM response generation to answer a question with source-aware context.
 
 #### backend/services/
 This folder contains the business logic used by the API.
 
 - `__init__.py`  
-  Marks the services package.
+  - Use: package marker for the services module.
+  - What it does: exposes the service package to the rest of the backend.
 
 - `pdf_service.py`  
-  Handles PDF upload, file saving, PDF parsing, chunk splitting, vector indexing, and PDF deletion.
+  - Use: PDF upload and indexing workflow.
+  - Main functions: `PDFService.__init__()`, `upload_and_process()`, `list_all_pdfs()`, `get_pdf()`, `delete_pdf()`, and `_generate_pdf_id()`.
+  - What it does: saves uploaded PDF files, reads and splits them into chunks, stores embeddings in Chroma, records metadata in SQLite, and removes PDF records when deleted.
 
 - `rag_service.py`  
-  Executes the actual RAG query workflow: retrieve relevant chunks, build the context, choose the model, generate an answer, and persist chat history.
+  - Use: core question-answering and session management logic.
+  - Main functions: `query_multi_pdf()`, `save_message()`, `get_session_messages()`, `get_sessions()`, `rename_session()`, and `delete_session()`.
+  - What it does: retrieves relevant chunks from the selected PDFs, builds context, uses the LLM to generate the answer, saves user and assistant messages, and manages chat sessions.
 
 #### backend/routers/
 These files define the HTTP endpoints exposed by the API.
 
 - `__init__.py`  
-  Marks the routers package.
+  - Use: package marker for the router module.
+  - What it does: allows the router package to be imported and grouped together.
 
 - `pdfs.py`  
-  Exposes endpoints for uploading PDFs, listing uploaded PDFs, and deleting a PDF entry.
+  - Use: API routes for PDF upload, listing, and deletion.
+  - Main functions: `upload_pdf()`, `list_pdfs()`, and `delete_pdf()`.
+  - What it does: receives uploaded PDF files from the frontend, validates them, processes them through `PDFService`, and exposes listing and deletion endpoints.
 
 - `query.py`  
-  Exposes the main question-answer endpoint and the session message history endpoint.
+  - Use: chat question and session endpoints.
+  - Main functions: `query_pdfs()`, `list_sessions()`, `get_session_messages()`, `rename_session()`, and `delete_session()`.
+  - What it does: accepts a question from the user, saves the chat session, runs retrieval and answer generation, returns the final answer and sources, and handles session history operations.
 
 - `models.py`  
-  Lists the available Ollama chat models to the frontend.
+  - Use: model listing endpoint.
+  - Main functions: `is_chat_model()` and `list_models()`.
+  - What it does: connects to Ollama, filters out embedding-only models, and returns only conversation-capable models available to the frontend.
 
 - `health.py`  
-  Checks whether the backend and Ollama are reachable and reports some summary data about the system.
+  - Use: health and system status checks.
+  - Main functions: `health_check()`.
+  - What it does: verifies that Ollama is reachable, the SQLite database is connected, Chroma is available, and the vector/indexing system is healthy enough for normal operation.
 
 ## FastAPI API list
 
