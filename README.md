@@ -50,6 +50,13 @@ The design emphasizes:
   <p><em>Chat dashboard — answering questions using uploaded PDF content.</em></p>
 </div>
 
+## Application Architecture
+<div align="center">
+  <img src="assets/Local AI Mind Architecture Diagram.png" alt="Local AI Mind showing a document-grounded chat conversation" width="800" />
+  <p><em>Local AI Mind Architecture</em></p>
+</div>
+
+
 ## Core capabilities
 
 ### 1. PDF ingestion and semantic retrieval
